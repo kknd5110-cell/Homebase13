@@ -4676,12 +4676,9 @@ function scrollToMySeat() {
         localStorage.removeItem("homebase-session");
         return;
       }
-      // 초기 비밀번호 → 비번 변경 화면
+      // 초기 비밀번호 → 세션 삭제 후 로그인 화면 유지 (새 창/탭에서 changepw 자동 복원 방지)
       if (rec.isDefault) {
-        currentUser = { id: session.id, isDefault: true };
-        const p = parseId(session.id);
-        document.getElementById("changepw-label").textContent = p.label + " · 닉네임과 비밀번호를 설정해주세요";
-        showScreen("changepw");
+        localStorage.removeItem("homebase-session");
         return;
       }
       // 정상 복원
