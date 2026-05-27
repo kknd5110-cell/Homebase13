@@ -195,7 +195,6 @@
       adminRenderDdayPanel();
     }
   });
-  });
 
   // 예약 개방 ON/OFF Firebase 동기화
   window.reservationOpen = false;
@@ -4487,14 +4486,27 @@ function adminDoResetOneStudent(id) {
 }
 
 function adminDoResetStudents() {
-  // 1. Firebase students 노드 삭제
+  // 1. 현재 로그인 중인 모든 학생에게 강제 로그아웃 신호 전송
+  if (typeof window.fbForceLogout === "function" && studentDB) {
+    Object.keys(studentDB).forEach(id => {
+      window.fbForceLogout(id);
+    });
+  }
+  // 2. Firebase students 노드 삭제
   if (typeof window.fbRemoveStudents === "function") {
     window.fbRemoveStudents();
   }
-  // 2. localStorage 삭제
+  // 3. fbStudentCache 비우기
+  if (window.fbStudentCache) {
+    Object.keys(window.fbStudentCache).forEach(k => delete window.fbStudentCache[k]);
+  }
+  // 4. localStorage 삭제
   localStorage.removeItem("homebase-userdata");
-  // 3. 메모리 초기화
+  // 5. sessionStorage 삭제 (자동 세션 복원 방지)
+  sessionStorage.removeItem("homebase-session");
+  // 6. 메모리 초기화
   studentDB = buildDefaultDB();
+  adminRenderResetPreview();
   closeModal();
   showToast("✅ 학생 로그인 정보가 초기화되었습니다.", "#f87171");
 }
@@ -5149,4 +5161,4 @@ function toggleTheme() {
 
 </script>
 </body>
-        </html>
+  </html>
