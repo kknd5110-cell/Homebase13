@@ -199,8 +199,79 @@
     --gold:     #fbbf24;
     --purple:   #a78bfa;
     --red:      #f87171;
+    --card:     #0d1423;
     --font:     'Noto Sans KR', sans-serif;
     --mono:     'Space Mono', monospace;
+  }
+
+  /* ── 라이트 모드 ── */
+  body.light-mode {
+    --bg:       #f0f4ff;
+    --bg2:      #e4eaf8;
+    --bg3:      #ffffff;
+    --border:   #c8d4ec;
+    --border2:  #a0b4d8;
+    --text:     #1a2540;
+    --muted:    #6080a0;
+    --muted2:   #b0c4dc;
+    --green:    #16a34a;
+    --blue:     #2563eb;
+    --pink:     #db2777;
+    --gold:     #d97706;
+    --purple:   #7c3aed;
+    --red:      #dc2626;
+    --card:     #ffffff;
+  }
+
+  /* 라이트모드 body::before scanline 제거 */
+  body.light-mode::before { display: none; }
+
+  /* 라이트모드 캘린더 날짜 가독성 */
+  body.light-mode .cal-day { color: #334155; }
+  body.light-mode .cal-day.other-month { color: #94a3b8; opacity: 1; }
+
+  /* 라이트모드 탁자 글씨 */
+  body.light-mode .table-block span { color: #334155 !important; }
+  body.light-mode .table-block { background: #94a3b8; border-color: #64748b; }
+  body.light-mode .table-block span { color: #1e293b !important; }
+
+  /* 라이트모드 study-table 글씨 */
+  body.light-mode .study-table span { color: #334155 !important; }
+  body.light-mode .study-table { background: #94a3b8; border-color: #64748b; }
+  body.light-mode .study-table span { color: #1e293b !important; }
+
+  /* 라이트모드 lounge-table-center */
+  body.light-mode .lounge-table-center span { color: #334155 !important; }
+
+  /* 라이트모드 section-title */
+  body.light-mode .section-title { color: #475569 !important; }
+
+  /* 라이트모드 zone-chip */
+  body.light-mode .zone-chip { border-color: var(--border) !important; }
+
+  /* 테마 토글 버튼 */
+  #theme-toggle-btn {
+    position: fixed;
+    bottom: 20px;
+    right: 16px;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 1px solid var(--border2);
+    background: var(--bg2);
+    color: var(--text);
+    font-size: 20px;
+    cursor: pointer;
+    z-index: 9990;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    transition: all 0.2s;
+  }
+  #theme-toggle-btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 24px rgba(0,0,0,0.4);
   }
 
   body {
@@ -500,7 +571,7 @@
     position: sticky;
     top: 0;
     z-index: 50;
-    background: rgba(6,9,15,0.88);
+    background: var(--bg2);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     border-bottom: 1px solid var(--border);
@@ -568,7 +639,10 @@
     padding: 2px 10px;
     border-radius: 20px;
     margin-top: 3px;
+    cursor: pointer;
+    transition: opacity 0.15s;
   }
+  .zone-badge:hover { opacity: 0.75; }
 
   /* Content */
   .panel-reservation {
@@ -721,7 +795,7 @@
   }
   .table-block span {
     font-size: 7px;
-    color: rgba(148,163,184,0.9);
+    color: var(--muted);
     font-family: var(--mono);
     font-weight: 700;
   }
@@ -1646,6 +1720,7 @@
 </style>
 </head>
 <body>
+<button id="theme-toggle-btn" onclick="toggleTheme()" title="라이트/다크 모드 전환">🌙</button>
 
 <!-- ══════════════ LOGIN SCREEN ══════════════ -->
 <div id="screen-login" class="screen active">
@@ -1680,8 +1755,8 @@
 
     <!-- 명언 -->
     <div id="login-quote-box" style="margin-top:20px;max-width:340px;width:100%;text-align:center;padding:0 8px;margin-left:auto;margin-right:auto;">
-      <div id="login-quote-text" style="font-size:13px;color:rgba(148,163,184,0.85);line-height:1.7;font-style:italic;"></div>
-      <div id="login-quote-author" style="font-size:11px;color:rgba(100,116,139,0.8);margin-top:6px;font-family:var(--mono);"></div>
+      <div id="login-quote-text" style="font-size:13px;color:var(--text);opacity:0.75;line-height:1.7;font-style:italic;"></div>
+      <div id="login-quote-author" style="font-size:11px;color:var(--muted);margin-top:6px;font-family:var(--mono);"></div>
     </div>
   </div>
 </div>
@@ -1986,10 +2061,8 @@
     <!-- Legend -->
     <div class="legend" id="slot-legend"></div>
 
-    <!-- Zone header -->
-    <div class="zone-header" style="margin-bottom:10px;">
-      <span class="zone-chip" id="zone-chip">내 구역</span>
-    </div>
+    <!-- Zone selector -->
+    <div id="zone-selector" style="margin-bottom:12px;"></div>
 
     <!-- Seat counter -->
     <div id="seat-counter" style="display:flex;gap:8px;justify-content:center;margin-bottom:12px;"></div>
@@ -2079,6 +2152,10 @@ function parseId(id) {
 }
 
 function getZone(id) {
+  // 학생이 수동으로 구역을 선택한 경우 override 사용
+  if (window._overrideZone && currentUser && id === currentUser.id) {
+    return window._overrideZone;
+  }
   const { grade, cls } = parseId(id);
   const half = cls <= 5 ? "front" : "back";
   return grade + "_" + half;
@@ -2405,7 +2482,7 @@ async function doLogin() {
   // 관리자 로그인
   if (id === "89012" && pw === "JWJ0000") {
     currentUser = { id: "89012", isAdmin: true };
-    localStorage.setItem("homebase-session", JSON.stringify(currentUser));
+    sessionStorage.setItem("homebase-session", JSON.stringify(currentUser));
     document.getElementById("login-pw").value = "";
     document.getElementById("login-id").value = "";
     document.getElementById("login-error").classList.remove("show");
@@ -2428,7 +2505,7 @@ async function doLogin() {
 
   if (rec.password !== pw) { showLoginError("비밀번호가 올바르지 않습니다."); return; }
   currentUser = { id, isDefault: rec.isDefault };
-  localStorage.setItem("homebase-session", JSON.stringify(currentUser));
+  sessionStorage.setItem("homebase-session", JSON.stringify(currentUser));
   document.getElementById("login-pw").value = "";
   document.getElementById("login-id").value = "";
   document.getElementById("login-preview").textContent = "";
@@ -2506,7 +2583,7 @@ function doChangePw() {
     password: pw1, isDefault: false, nickname: nick,
   };
   currentUser.isDefault = false;
-  localStorage.setItem("homebase-session", JSON.stringify(currentUser));
+  sessionStorage.setItem("homebase-session", JSON.stringify(currentUser));
   saveStudentDB();
   document.getElementById("cp-pw1").value = "";
   document.getElementById("cp-pw2").value = "";
@@ -2523,6 +2600,8 @@ function enterMain() {
   showScreen("main");
   // selectedDate 오늘로 초기화
   selectedDate = todayStr();
+  // 학번 기반 기본 구역으로 초기화
+  window._overrideZone = null;
   renderTopbar();
   renderDday();
   renderSlotTabs();
@@ -2606,8 +2685,115 @@ function renderTopbar() {
   document.getElementById("main-username").textContent = displayName(currentUser.id);
   document.getElementById("main-usersub").textContent = "(" + p.label + ")";
   const badge = document.getElementById("main-zone-badge");
-  badge.textContent = "📍 " + zLabel;
+  badge.textContent = "📍 " + zLabel + " ✎";
   badge.style.cssText = `background:${zColor}15;border:1px solid ${zColor}33;color:${zColor};border-radius:20px;font-size:9px;font-family:var(--mono);font-weight:700;padding:2px 8px;`;
+  badge.onclick = openZoneModal;
+}
+
+function openZoneModal() {
+  const p = parseId(currentUser.id);
+  const grade = p.grade;
+  const zones = [
+    { id: grade + "_front", label: grade + "학년 앞반 (1~5반)" },
+    { id: grade + "_back",  label: grade + "학년 뒷반 (6~10반)" },
+  ];
+  let selectedZone = getZone(currentUser.id);
+
+  function buildHtml() {
+    return zones.map(z => {
+      const color = ZONE_COLORS[z.id] || "#60a5fa";
+      const isOn = z.id === selectedZone;
+      return `<button onclick="window._zoneModalSelect('${z.id}')"
+        style="width:100%;padding:14px 18px;border-radius:12px;
+          border:2px solid ${isOn ? color : "var(--border)"};
+          background:${isOn ? color + "18" : "transparent"};
+          color:${isOn ? color : "var(--muted)"};
+          font-size:14px;font-weight:700;font-family:var(--font);
+          cursor:pointer;display:flex;align-items:center;justify-content:space-between;
+          margin-bottom:8px;">
+        <span>${z.label}</span>
+        <span>${isOn ? "✓" : ""}</span>
+      </button>`;
+    }).join("") +
+    `<button onclick="window._zoneModalConfirm()"
+      style="width:100%;padding:13px;border-radius:12px;border:none;
+        background:linear-gradient(135deg,#3b82f6,#60a5fa);
+        color:#fff;font-weight:900;font-size:14px;
+        cursor:pointer;font-family:var(--font);margin-top:4px;">
+      이 구역으로 변경하기 →
+    </button>`;
+  }
+
+  window._zoneModalSelect = (id) => {
+    selectedZone = id;
+    document.getElementById("zone-modal-body").innerHTML = buildHtml();
+  };
+  window._zoneModalConfirm = () => {
+    currentUser.zone = selectedZone;
+    sessionStorage.setItem("homebase-session", JSON.stringify(currentUser));
+    closeModal();
+    renderTopbar();
+    renderSeatMap();
+    renderAll();
+  };
+
+  openModal(
+    `<div class="modal-sub">구역 변경</div>
+     <div class="modal-title" style="color:#60a5fa;margin-bottom:16px;">📍 구역 선택</div>
+     <div id="zone-modal-body">${buildHtml()}</div>`,
+    "#3b82f644"
+  );
+}
+
+function openZoneModal() {
+  const p = parseId(currentUser.id);
+  const grade = p.grade;
+  const zones = [
+    { id: grade + "_front", label: grade + "학년 앞반 (1~5반)" },
+    { id: grade + "_back",  label: grade + "학년 뒷반 (6~10반)" },
+  ];
+  let selectedZone = getZone(currentUser.id);
+
+  function buildHtml() {
+    return zones.map(z => {
+      const color = ZONE_COLORS[z.id] || "#60a5fa";
+      const isOn = z.id === selectedZone;
+      return "<button onclick=\"window._zoneModalSelect('" + z.id + "')\"" +
+        " style=\"width:100%;padding:14px 18px;border-radius:12px;" +
+        "border:2px solid " + (isOn ? color : "var(--border)") + ";" +
+        "background:" + (isOn ? color + "18" : "transparent") + ";" +
+        "color:" + (isOn ? color : "var(--muted)") + ";" +
+        "font-size:14px;font-weight:700;font-family:var(--font);" +
+        "cursor:pointer;display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;\">" +
+        "<span>" + z.label + "</span><span>" + (isOn ? "✓" : "") + "</span>" +
+        "</button>";
+    }).join("") +
+    "<button onclick=\"window._zoneModalConfirm()\"" +
+    " style=\"width:100%;padding:13px;border-radius:12px;border:none;" +
+    "background:linear-gradient(135deg,#3b82f6,#60a5fa);" +
+    "color:#fff;font-weight:900;font-size:14px;cursor:pointer;font-family:var(--font);margin-top:4px;\">" +
+    "이 구역으로 변경하기 →</button>";
+  }
+
+  window._zoneModalSelect = function(id) {
+    selectedZone = id;
+    document.getElementById("zone-modal-body").innerHTML = buildHtml();
+  };
+  window._zoneModalConfirm = function() {
+    currentUser.zone = selectedZone;
+    sessionStorage.setItem("homebase-session", JSON.stringify(currentUser));
+    closeModal();
+    renderTopbar();
+    renderSeatMap();
+    renderAll();
+  };
+
+  openModal(
+    "<div class=\"modal-sub\">구역 변경</div>" +
+    "<div class=\"modal-title\" style=\"color:#60a5fa;margin-bottom:16px;\">📍 구역 선택</div>" +
+    "<div id=\"zone-modal-body\">" + buildHtml() + "</div>",
+    "#3b82f644"
+  );
 }
 
 function renderSlotTabs() {
@@ -2679,7 +2865,7 @@ function renderSeatCounter() {
   const ZONE_SEATS = {
     "1_front": 16, "2_front": 16,  // 스터디 4테이블 × 4석
     "1_back": 22, "2_back": 22, "3_back": 22,  // 창가8 + 스터디8 + 라운지6
-    "3_front": 20
+    "3_front": 22
   };
   const totalSeats = ZONE_SEATS[zone] || document.querySelectorAll("[data-seat]").length;
   const dateStr = selectedDate || todayStr();
@@ -2754,12 +2940,52 @@ function renderLegend() {
 }
 
 function renderZoneHeader() {
-  const zone = getZone(currentUser.id);
-  const zColor = ZONE_COLORS[zone] || "#60a5fa";
-  const zLabel = ZONE_LABELS[zone] || "내 구역";
-  const chip = document.getElementById("zone-chip");
-  chip.textContent = zLabel + " 전용 공간";
-  chip.style.cssText = `color:${zColor};background:${zColor}12;border:1px solid ${zColor}25;border-radius:20px;font-size:11px;font-weight:700;font-family:var(--mono);padding:4px 16px;`;
+  const { grade } = parseId(currentUser.id);
+  const el = document.getElementById("zone-selector");
+  if (!el) return;
+
+  // 학년별 색상
+  const gradeColor = grade === 1 ? "#34d399" : grade === 2 ? "#60a5fa" : "#f472b6";
+  const gradeLabel = grade + "학년";
+
+  // 현재 선택된 구역
+  const currentZone = window._overrideZone || getZone(currentUser.id);
+  const isFront = currentZone.endsWith("_front");
+
+  el.innerHTML = `
+    <div style="display:flex;flex-direction:column;align-items:center;gap:8px;">
+      <div style="font-size:11px;color:var(--muted);font-family:var(--mono);letter-spacing:1px;">
+        ${gradeLabel} · 홈베이스 구역 선택
+      </div>
+      <div style="display:flex;gap:8px;width:100%;max-width:320px;">
+        <button onclick="selectZoneOverride('${grade}_front')"
+          style="flex:1;padding:12px 0;border-radius:12px;border:2px solid ${isFront ? gradeColor : 'var(--border)'};
+          background:${isFront ? gradeColor+'22' : 'var(--card)'};
+          color:${isFront ? gradeColor : 'var(--muted)'};
+          font-weight:700;font-size:13px;cursor:pointer;transition:all 0.2s;font-family:var(--mono);
+          ${isFront ? 'box-shadow:0 0 12px '+gradeColor+'44;' : ''}">
+          🏫 앞반 (1~5반)
+          ${isFront ? '<br><span style="font-size:10px;font-weight:400;opacity:0.8;">✓ 현재 선택</span>' : ''}
+        </button>
+        <button onclick="selectZoneOverride('${grade}_back')"
+          style="flex:1;padding:12px 0;border-radius:12px;border:2px solid ${!isFront ? gradeColor : 'var(--border)'};
+          background:${!isFront ? gradeColor+'22' : 'var(--card)'};
+          color:${!isFront ? gradeColor : 'var(--muted)'};
+          font-weight:700;font-size:13px;cursor:pointer;transition:all 0.2s;font-family:var(--mono);
+          ${!isFront ? 'box-shadow:0 0 12px '+gradeColor+'44;' : ''}">
+          🏫 뒷반 (6~10반)
+          ${!isFront ? '<br><span style="font-size:10px;font-weight:400;opacity:0.8;">✓ 현재 선택</span>' : ''}
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+function selectZoneOverride(zone) {
+  window._overrideZone = zone;
+  renderZoneHeader();
+  renderSeatMap();
+  renderAll();
 }
 
 function renderSeats() {
@@ -3276,7 +3502,7 @@ function doSavePw() {
 // LOGOUT
 // ══════════════════════════════════════════════
 document.getElementById("btn-logout").addEventListener("click", () => {
-  localStorage.removeItem("homebase-session");
+  sessionStorage.removeItem("homebase-session");
   currentUser = null;
   selectedDate = null;
   selectedSlotIds = new Set(["8th"]);
@@ -3756,7 +3982,7 @@ function checkSuspension() {
   if (!currentUser || currentUser.isAdmin) return;
   if (isSuspended(currentUser.id)) {
     // 세션 즉시 삭제 → 새로고침해도 정지 화면 유지 안 되게
-    localStorage.removeItem("homebase-session");
+    sessionStorage.removeItem("homebase-session");
     showSuspendedScreen();
   }
 }
@@ -3796,7 +4022,7 @@ function showSuspendedScreen() {
 }
 
 function doLogout() {
-  localStorage.removeItem("homebase-session");
+  sessionStorage.removeItem("homebase-session");
   currentUser = null;
   currentSlotId = "8th";
   const sus = document.getElementById("screen-suspended");
@@ -3900,9 +4126,13 @@ function renderAdminReservationToggle() {
   function check() {
     const now = new Date();
     const h = now.getHours(), m = now.getMinutes();
+    const totalMin = h * 60 + m;
+    const openMin  = 16 * 60 + 40;  // 16:40 자동 ON
+    const closeMin = 22 * 60 + 0;   // 22:00 자동 OFF
+    const noonMin  = 12 * 60 + 0;   // 12:00 자동 OFF
 
-    // 16:40 → 자동 ON
-    if (h === 16 && m >= 40 && !window.reservationOpen) {
+    // 16:40 → 자동 ON (22:00 이전일 때만)
+    if (totalMin >= openMin && totalMin < closeMin && !window.reservationOpen) {
       if (typeof window.fbSetReservationOpen === "function") {
         window.fbSetReservationOpen(true);
       } else {
@@ -3911,8 +4141,18 @@ function renderAdminReservationToggle() {
       }
     }
 
-    // 자정(00:00 ~ 00:00:59) → 자동 OFF
-    if (h === 0 && m === 0 && window.reservationOpen) {
+    // 22:00 → 자동 OFF
+    if (totalMin >= closeMin && window.reservationOpen) {
+      if (typeof window.fbSetReservationOpen === "function") {
+        window.fbSetReservationOpen(false);
+      } else {
+        window.reservationOpen = false;
+        renderAdminReservationToggle();
+      }
+    }
+
+    // 오후 12:00 (정오) → 자동 OFF
+    if (h === 12 && m === 0 && window.reservationOpen) {
       if (typeof window.fbSetReservationOpen === "function") {
         window.fbSetReservationOpen(false);
       } else {
@@ -4073,8 +4313,8 @@ function adminResetOneStudent(id) {
   if (typeof window.fbSaveStudent === "function") window.fbSaveStudent(id, resetRec);
   if (typeof window.fbForceLogout === "function") window.fbForceLogout(id);
   try {
-    const saved = localStorage.getItem("homebase-session");
-    if (saved) { const sess = JSON.parse(saved); if (sess && sess.id === id) localStorage.removeItem("homebase-session"); }
+    const saved = sessionStorage.getItem("homebase-session");
+    if (saved) { const sess = JSON.parse(saved); if (sess && sess.id === id) sessionStorage.removeItem("homebase-session"); }
   } catch(e) {}
   adminRenderResetList();
   adminRenderResetPreview();
@@ -4099,10 +4339,10 @@ function adminDoResetOneStudent(id) {
   }
   // localStorage 세션 무효화(해당 학생이 로그인 중이면 자동 로그아웃)
   try {
-    const saved = localStorage.getItem("homebase-session");
+    const saved = sessionStorage.getItem("homebase-session");
     if (saved) {
       const sess = JSON.parse(saved);
-      if (sess && sess.id === id) localStorage.removeItem("homebase-session");
+      if (sess && sess.id === id) sessionStorage.removeItem("homebase-session");
     }
   } catch(e) {}
 
@@ -4577,7 +4817,7 @@ function adminLiftSuspension(studentId) {
 }
 
 document.getElementById("btn-admin-logout").addEventListener("click", () => {
-  localStorage.removeItem("homebase-session");
+  sessionStorage.removeItem("homebase-session");
   currentUser = null;
   showScreen("login");
 });
@@ -4653,7 +4893,7 @@ function scrollToMySeat() {
 }
 
 (function restoreSession() {
-  const saved = localStorage.getItem("homebase-session");
+  const saved = sessionStorage.getItem("homebase-session");
   if (!saved) return;
   try {
     const session = JSON.parse(saved);
@@ -4661,24 +4901,27 @@ function scrollToMySeat() {
 
     // 관리자 세션은 복원하지 않음
     if (session.isAdmin) {
-      localStorage.removeItem("homebase-session");
+      sessionStorage.removeItem("homebase-session");
       return;
     }
 
     function doRestore() {
       const rec = studentDB[session.id];
       if (!rec) {
-        localStorage.removeItem("homebase-session");
+        sessionStorage.removeItem("homebase-session");
         return;
       }
       // 정지된 계정
       if (isSuspended(session.id)) {
-        localStorage.removeItem("homebase-session");
+        sessionStorage.removeItem("homebase-session");
         return;
       }
-      // 초기 비밀번호 → 세션 삭제 후 로그인 화면 유지 (새 창/탭에서 changepw 자동 복원 방지)
+      // 초기 비밀번호 → 비번 변경 화면
       if (rec.isDefault) {
-        localStorage.removeItem("homebase-session");
+        currentUser = { id: session.id, isDefault: true };
+        const p = parseId(session.id);
+        document.getElementById("changepw-label").textContent = p.label + " · 닉네임과 비밀번호를 설정해주세요";
+        showScreen("changepw");
         return;
       }
       // 정상 복원
@@ -4697,9 +4940,36 @@ function scrollToMySeat() {
     }
 
   } catch(e) {
-    localStorage.removeItem("homebase-session");
+    sessionStorage.removeItem("homebase-session");
   }
 })();
+
+// ── 라이트/다크 모드 토글 ──
+function applyTheme(mode) {
+  if (mode === "light") {
+    document.body.classList.add("light-mode");
+    const btn = document.getElementById("theme-toggle-btn");
+    if (btn) btn.textContent = "☀️";
+  } else {
+    document.body.classList.remove("light-mode");
+    const btn = document.getElementById("theme-toggle-btn");
+    if (btn) btn.textContent = "🌙";
+  }
+}
+
+function toggleTheme() {
+  const isLight = document.body.classList.contains("light-mode");
+  const next = isLight ? "dark" : "light";
+  localStorage.setItem("homebase-theme", next);
+  applyTheme(next);
+}
+
+// 페이지 로드 시 저장된 테마 적용
+(function() {
+  const saved = localStorage.getItem("homebase-theme") || "dark";
+  applyTheme(saved);
+})();
+
 </script>
 </body>
 </html>
