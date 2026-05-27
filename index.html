@@ -169,8 +169,8 @@
 
   // D-Day Firebase 동기화
   window.fbSaveDday = function(key, date, label) {
-    const obj = { date };
-    if (label) obj.label = label;
+    const obj = { date: date };
+    if (label && label.trim()) obj.label = label.trim();
     set(ref(db, "dday/" + key), obj);
   };
   onValue(ref(db, "dday"), (snapshot) => {
@@ -189,6 +189,12 @@
       }
     });
     if (typeof renderDday === "function") renderDday();
+    if (typeof adminRenderDdayPanel === "function" &&
+        document.getElementById("admin-panel-dday") &&
+        document.getElementById("admin-panel-dday").style.display !== "none") {
+      adminRenderDdayPanel();
+    }
+  });
   });
 
   // 예약 개방 ON/OFF Firebase 동기화
@@ -5015,13 +5021,14 @@ function adminSaveDday(key) {
   const label = labelId ? (document.getElementById(labelId).value.trim() || "다음 시험") : null;
   if (!date) { showToast("날짜를 선택해주세요", "#f87171"); return; }
 
+  // 로컬 즉시 반영
   const idx = DDAY_TARGETS.findIndex(t => t.key === key);
   if (idx !== -1) {
     DDAY_TARGETS[idx].date = date;
     if (label) DDAY_TARGETS[idx].label = label;
   }
 
-  // Firebase 저장
+  // Firebase 저장 (onValue가 다시 트리거해서 2차 반영)
   if (typeof window.fbSaveDday === "function") {
     window.fbSaveDday(key, date, label);
   }
@@ -5142,4 +5149,4 @@ function toggleTheme() {
 
 </script>
 </body>
-  </html>
+        </html>
