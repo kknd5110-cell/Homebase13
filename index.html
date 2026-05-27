@@ -1818,7 +1818,7 @@
     <div class="login-logo">
       <div class="login-logo-sub">홈베이스 좌석 예약 시스템</div>
       <h1>HomeBase</h1>
-      <p>충북고 학생들의 앞날을 응원합니다.</p>
+      <p>충북과 학생들의 공부를 응원합니다.</p>
     </div>
     <div class="card">
       <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:22px;">로그인</div>
@@ -4069,7 +4069,7 @@ function renderCalSelectedInfo() {
   infoEl.style.display = "block";
   infoEl.innerHTML = `
     <div class="cal-selected-date" style="color:${dowColor};">${y}년 ${m}월 ${d}일 (${dowNames[dow]})${isToday ? " · 오늘" : ""}</div>
-    ${holiday ? `<div class="cal-selected-holiday">🏖️  ${holiday}</div>` : ""}
+    ${holiday ? `<div class="cal-selected-holiday"> ${holiday}</div>` : "🏖️"}
     ${isPast ? `<div style="font-size:10px;color:#94a3b8;font-family:var(--mono);margin-bottom:4px;">📌 과거 기록 (읽기 전용)</div>` : ""}
     ${resHtml}
     ${actionBtn}
@@ -4254,44 +4254,36 @@ function renderAdminReservationToggle() {
   desc.style.color      = on ? "#4ade80" : "var(--muted)";
 }
 
-// 16:40 자동 ON / 자정(00:00) 자동 OFF 타이머
+// 16:40 자동 ON / 22:00 + 자정 이후 자동 OFF 타이머
 (function scheduleAutoOpenClose() {
+  function setOpen(val) {
+    if (typeof window.fbSetReservationOpen === "function") {
+      window.fbSetReservationOpen(val);
+    } else {
+      window.reservationOpen = val;
+      if (typeof renderAdminReservationToggle === "function") renderAdminReservationToggle();
+    }
+  }
+
   function check() {
     const now = new Date();
     const h = now.getHours(), m = now.getMinutes();
     const totalMin = h * 60 + m;
     const openMin  = 16 * 60 + 40;  // 16:40 자동 ON
     const closeMin = 22 * 60 + 0;   // 22:00 자동 OFF
-    const noonMin  = 12 * 60 + 0;   // 12:00 자동 OFF
 
-    // 16:40 → 자동 ON (22:00 이전일 때만)
-    if (totalMin >= openMin && totalMin < closeMin && !window.reservationOpen) {
-      if (typeof window.fbSetReservationOpen === "function") {
-        window.fbSetReservationOpen(true);
-      } else {
-        window.reservationOpen = true;
-        renderAdminReservationToggle();
-      }
+    // 자동 OFF 구간: 0:00~16:39 또는 22:00~23:59
+    const shouldBeOff = totalMin < openMin || totalMin >= closeMin;
+
+    if (shouldBeOff && window.reservationOpen) {
+      // 0시~16:39 또는 22:00 이후면 무조건 OFF
+      setOpen(false);
+      return;
     }
 
-    // 22:00 → 자동 OFF
-    if (totalMin >= closeMin && window.reservationOpen) {
-      if (typeof window.fbSetReservationOpen === "function") {
-        window.fbSetReservationOpen(false);
-      } else {
-        window.reservationOpen = false;
-        renderAdminReservationToggle();
-      }
-    }
-
-    // 오후 12:00 (정오) → 자동 OFF
-    if (h === 12 && m === 0 && window.reservationOpen) {
-      if (typeof window.fbSetReservationOpen === "function") {
-        window.fbSetReservationOpen(false);
-      } else {
-        window.reservationOpen = false;
-        renderAdminReservationToggle();
-      }
+    // 16:40~21:59 구간 → 자동 ON
+    if (!shouldBeOff && !window.reservationOpen) {
+      setOpen(true);
     }
   }
   setInterval(check, 30000); // 30초마다 체크
@@ -4579,6 +4571,19 @@ function renderAdminRes() {
   };
 
   const q = adminResSearchQuery.toLowerCase();
+  const today = todayStr();
+
+  // 지난 날짜 예약 자동 삭제 (Firebase + 메모리)
+  const expiredKeys = Object.keys(reservations).filter(k => {
+    const parts = k.split(":");
+    return parts.length >= 4 && parts[1] < today;
+  });
+  if (expiredKeys.length > 0) {
+    expiredKeys.forEach(k => delete reservations[k]);
+    if (typeof window.fbSaveReservations === "function") {
+      window.fbSaveReservations(reservations);
+    }
+  }
 
   const entries = Object.entries(reservations);
   if (entries.length === 0) {
