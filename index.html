@@ -167,6 +167,30 @@
     }
   };
 
+  // D-Day Firebase 동기화
+  window.fbSaveDday = function(key, date, label) {
+    const obj = { date };
+    if (label) obj.label = label;
+    set(ref(db, "dday/" + key), obj);
+  };
+  onValue(ref(db, "dday"), (snapshot) => {
+    const data = snapshot.val();
+    if (!data) return;
+    ["exam", "suneung"].forEach(key => {
+      if (!data[key]) return;
+      const idx = DDAY_TARGETS.findIndex(t => t.key === key);
+      if (idx === -1) return;
+      const val = data[key];
+      if (typeof val === "string") {
+        DDAY_TARGETS[idx].date = val;
+      } else {
+        if (val.date)  DDAY_TARGETS[idx].date  = val.date;
+        if (val.label) DDAY_TARGETS[idx].label = val.label;
+      }
+    });
+    if (typeof renderDday === "function") renderDday();
+  });
+
   // 예약 개방 ON/OFF Firebase 동기화
   window.reservationOpen = false;
   onValue(ref(db, "reservationOpen"), (snapshot) => {
@@ -1907,6 +1931,7 @@
         <button class="settings-tab active" id="admin-tab-res" onclick="switchAdminTab('res')" style="flex:1;padding:12px;border-radius:12px;border:1px solid #f8717133;background:#f8717108;color:#f87171;font-weight:700;font-size:13px;font-family:var(--font);cursor:pointer;">📋 예약 관리</button>
         <button class="settings-tab" id="admin-tab-sus" onclick="switchAdminTab('sus')" style="flex:1;padding:12px;border-radius:12px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:13px;font-family:var(--font);cursor:pointer;">🚫 정지 관리</button>
         <button class="settings-tab" id="admin-tab-lookup" onclick="switchAdminTab('lookup')" style="flex:1;padding:12px;border-radius:12px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:13px;font-family:var(--font);cursor:pointer;">🔍 학생 조회</button>
+        <button class="settings-tab" id="admin-tab-dday" onclick="switchAdminTab('dday')" style="flex:1;padding:12px;border-radius:12px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:13px;font-family:var(--font);cursor:pointer;">📅 D-Day</button>
         <button class="settings-tab" id="admin-tab-reset" onclick="switchAdminTab('reset')" style="flex:1;padding:12px;border-radius:12px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:13px;font-family:var(--font);cursor:pointer;">🗑️ 초기화</button>
       </div>
 
@@ -1975,6 +2000,45 @@
       </div>
 
       <!-- 초기화 패널 -->
+      <!-- D-Day 설정 패널 -->
+      <div id="admin-panel-dday" style="display:none;">
+        <div style="font-size:11px;color:var(--muted);font-family:var(--mono);margin-bottom:16px;letter-spacing:1px;">D-Day 날짜 설정</div>
+
+        <!-- 다음 시험 -->
+        <div style="background:#60a5fa08;border:1px solid #60a5fa33;border-radius:14px;padding:18px 16px;margin-bottom:12px;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+            <span style="font-size:20px;">📝</span>
+            <span style="font-size:14px;font-weight:700;color:#60a5fa;">다음 시험</span>
+          </div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:8px;font-family:var(--mono);">현재 설정</div>
+          <div id="dday-exam-current" style="font-size:13px;color:var(--text);font-weight:700;margin-bottom:14px;font-family:var(--mono);"></div>
+          <input type="text" id="dday-exam-label" placeholder="이름 (예: 1차 지필평가)"
+            style="width:100%;padding:11px 14px;border-radius:10px;border:1px solid #60a5fa44;background:var(--bg2);color:var(--text);font-size:13px;font-family:var(--font);outline:none;box-sizing:border-box;margin-bottom:8px;" />
+          <input type="date" id="dday-exam-input"
+            style="width:100%;padding:11px 14px;border-radius:10px;border:1px solid #60a5fa44;background:var(--bg2);color:var(--text);font-size:14px;font-family:var(--mono);outline:none;box-sizing:border-box;margin-bottom:10px;" />
+          <button onclick="adminSaveDday('exam')"
+            style="width:100%;padding:11px;border-radius:10px;border:none;background:#60a5fa;color:#000;font-weight:800;font-size:13px;font-family:var(--font);cursor:pointer;">
+            저장
+          </button>
+        </div>
+
+        <!-- 수능 -->
+        <div style="background:#a78bfa08;border:1px solid #a78bfa33;border-radius:14px;padding:18px 16px;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+            <span style="font-size:20px;">🎯</span>
+            <span style="font-size:14px;font-weight:700;color:#a78bfa;">수능</span>
+          </div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:8px;font-family:var(--mono);">현재 날짜</div>
+          <div id="dday-suneung-current" style="font-size:13px;color:var(--text);font-weight:700;margin-bottom:14px;font-family:var(--mono);"></div>
+          <input type="date" id="dday-suneung-input"
+            style="width:100%;padding:11px 14px;border-radius:10px;border:1px solid #a78bfa44;background:var(--bg2);color:var(--text);font-size:14px;font-family:var(--mono);outline:none;box-sizing:border-box;margin-bottom:10px;" />
+          <button onclick="adminSaveDday('suneung')"
+            style="width:100%;padding:11px;border-radius:10px;border:none;background:#a78bfa;color:#000;font-weight:800;font-size:13px;font-family:var(--font);cursor:pointer;">
+            저장
+          </button>
+        </div>
+      </div>
+
       <div id="admin-panel-reset" style="display:none;">
         <div style="font-size:11px;color:var(--muted);font-family:var(--mono);margin-bottom:16px;letter-spacing:1px;">학생 데이터 초기화</div>
 
@@ -2712,9 +2776,9 @@ function showNoticeModal() {
 }
 
 // ── D-Day 배너 ────────────────────────────────────────────
-const DDAY_TARGETS = [
-  { label: "다음 시험", emoji: "📝", date: "2026-06-29", color: "#60a5fa", bg: "#60a5fa" },
-  { label: "수능",      emoji: "🎯", date: "2026-11-19", color: "#a78bfa", bg: "#a78bfa" },
+let DDAY_TARGETS = [
+  { key: "exam",    label: "다음 시험", emoji: "📝", date: "2026-06-29", color: "#60a5fa", bg: "#60a5fa" },
+  { key: "suneung", label: "수능",      emoji: "🎯", date: "2026-11-19", color: "#a78bfa", bg: "#a78bfa" },
 ];
 
 function renderDday() {
@@ -4117,13 +4181,16 @@ function switchAdminTab(tab) {
   document.getElementById("admin-panel-res").style.display    = tab === "res"    ? "block" : "none";
   document.getElementById("admin-panel-sus").style.display    = tab === "sus"    ? "block" : "none";
   document.getElementById("admin-panel-lookup").style.display = tab === "lookup" ? "block" : "none";
+  document.getElementById("admin-panel-dday").style.display   = tab === "dday"   ? "block" : "none";
   document.getElementById("admin-panel-reset").style.display  = tab === "reset"  ? "block" : "none";
   const ON  = "flex:1;padding:12px;border-radius:12px;border:1px solid #f8717133;background:#f8717108;color:#f87171;font-weight:700;font-size:13px;font-family:var(--font);cursor:pointer;";
   const OFF = "flex:1;padding:12px;border-radius:12px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:13px;font-family:var(--font);cursor:pointer;";
   document.getElementById("admin-tab-res").style.cssText    = tab === "res"    ? ON : OFF;
   document.getElementById("admin-tab-sus").style.cssText    = tab === "sus"    ? ON : OFF;
   document.getElementById("admin-tab-lookup").style.cssText = tab === "lookup" ? ON : OFF;
+  document.getElementById("admin-tab-dday").style.cssText   = tab === "dday"   ? ON : OFF;
   document.getElementById("admin-tab-reset").style.cssText  = tab === "reset"  ? ON : OFF;
+  if (tab === "dday") adminRenderDdayPanel();
   // 초기화 탭 진입 시 Firebase 최신 데이터 가져와서 렌더
   if (tab === "reset") {
     adminRenderResetPreview(); // 로컬로 즉시 렌더
@@ -4924,6 +4991,48 @@ function showCancelNotifyModal(payload) {
 }
 
 // ══════════════════════════════════════════════
+// D-Day 관리자 설정
+// ══════════════════════════════════════════════
+function adminRenderDdayPanel() {
+  const examT  = DDAY_TARGETS.find(t => t.key === "exam");
+  const sunT   = DDAY_TARGETS.find(t => t.key === "suneung");
+  const examEl = document.getElementById("dday-exam-current");
+  const sunEl  = document.getElementById("dday-suneung-current");
+  const examIn = document.getElementById("dday-exam-input");
+  const sunIn  = document.getElementById("dday-suneung-input");
+  const examLb = document.getElementById("dday-exam-label");
+  if (examEl)  examEl.textContent = examT  ? `${examT.label}  ·  ${examT.date}`  : "-";
+  if (sunEl)   sunEl.textContent  = sunT   ? sunT.date   : "-";
+  if (examIn)  examIn.value  = examT  ? examT.date  : "";
+  if (sunIn)   sunIn.value   = sunT   ? sunT.date   : "";
+  if (examLb)  examLb.value  = examT  ? examT.label : "";
+}
+
+function adminSaveDday(key) {
+  const dateId  = key === "exam" ? "dday-exam-input"  : "dday-suneung-input";
+  const labelId = key === "exam" ? "dday-exam-label"  : null;
+  const date  = document.getElementById(dateId).value;
+  const label = labelId ? (document.getElementById(labelId).value.trim() || "다음 시험") : null;
+  if (!date) { showToast("날짜를 선택해주세요", "#f87171"); return; }
+
+  const idx = DDAY_TARGETS.findIndex(t => t.key === key);
+  if (idx !== -1) {
+    DDAY_TARGETS[idx].date = date;
+    if (label) DDAY_TARGETS[idx].label = label;
+  }
+
+  // Firebase 저장
+  if (typeof window.fbSaveDday === "function") {
+    window.fbSaveDday(key, date, label);
+  }
+
+  renderDday();
+  adminRenderDdayPanel();
+  const displayLabel = label || (key === "exam" ? "다음 시험" : "수능");
+  showToast(`✅ ${displayLabel} 저장됨: ${date}`, "#60a5fa");
+}
+
+// ══════════════════════════════════════════════
 loadAll();
 renderLoginQuote();
 
@@ -5033,4 +5142,4 @@ function toggleTheme() {
 
 </script>
 </body>
-</html>
+  </html>
