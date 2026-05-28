@@ -2534,6 +2534,24 @@ function loadAll() {
 function showScreen(id) {
   document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
   document.getElementById("screen-"+id).classList.add("active");
+
+  // changepw 화면 진입 시 강도 바 및 입력값 초기화
+  if (id === "changepw") {
+    ["cp-pw1","cp-pw2","cp-nickname"].forEach(eid => {
+      const el = document.getElementById(eid);
+      if (el) el.value = "";
+    });
+    const preview = document.getElementById("cp-nick-preview");
+    if (preview) preview.textContent = "";
+    const matchEl = document.getElementById("pw-match");
+    if (matchEl) matchEl.textContent = "";
+    for (let i = 1; i <= 4; i++) {
+      const bar = document.getElementById("bar"+i);
+      if (bar) bar.style.background = "var(--border2)";
+    }
+    const lbl = document.getElementById("strength-label");
+    if (lbl) { lbl.textContent = ""; lbl.style.color = "var(--muted)"; }
+  }
 }
 
 // ══════════════════════════════════════════════
@@ -3047,7 +3065,7 @@ function renderDateBanner() {
     <span style="font-size:15px;">${isToday ? "📅" : isPast ? "🗓️" : "📆"}</span>
     <span style="color:${dowColor};font-weight:700;">${y}년 ${m}월 ${d}일 (${dowNames[dow]})</span>
     ${isToday ? '<span style="font-size:10px;color:var(--muted);font-family:var(--mono);">· 오늘</span>' : ""}
-    ${isPast ? '<span style="font-size:10px;color:#f87171;font-family:var(--mono);">· 과거 날짜 (읽기 전용)</span>' : ""}
+    
   `;
   // 과거 날짜면 읽기 전용 처리
   banner.style.borderColor = isPast ? "rgba(248,113,113,0.2)" : "rgba(96,165,250,0.2)";
@@ -3982,7 +4000,7 @@ function renderCalendar() {
     if (holiday) cell.classList.add("holiday");
     if (dStr === calTodayStr) cell.classList.add("today");
     if (dStr === calSelectedDate) cell.classList.add("selected");
-    if (hasReservationOnDate(dStr)) cell.classList.add("has-reservation");
+    if (dStr >= calTodayStr && hasReservationOnDate(dStr)) cell.classList.add("has-reservation");
 
     if (holiday) {
       cell.innerHTML = `<span>${d}</span><span class="cal-holiday-name">${holiday}</span>`;
@@ -4027,6 +4045,13 @@ function renderCalSelectedInfo() {
 
   const ciTodayStr = todayStr();
   const isToday = calSelectedDate === ciTodayStr;
+  const isPast = calSelectedDate < ciTodayStr;
+
+  // 과거 날짜는 아무것도 표시 안 함
+  if (isPast) {
+    infoEl.style.display = "none";
+    return;
+  }
 
   let resHtml = "";
   if (currentUser) {
@@ -4050,29 +4075,15 @@ function renderCalSelectedInfo() {
           </div>`
         ).join("") + `</div>`;
     } else {
-      const isPast = calSelectedDate < todayStr();
-      resHtml = `<div class="cal-no-res">${isPast ? "이 날 예약 없음" : isToday ? "오늘 예약이 없습니다" : "예약 없음"}</div>`;
+      resHtml = `<div class="cal-no-res">${isToday ? "오늘 예약이 없습니다" : "예약 없음"}</div>`;
     }
-  }
-
-  const tStr2 = todayStr();
-  const isPast = calSelectedDate < tStr2;
-  const isFuture = calSelectedDate > tStr2;
-
-  let actionBtn = "";
-  if (!isPast) {
-    actionBtn = `<button onclick="jumpToDateReservation()" style="width:100%;margin-top:10px;padding:9px;border-radius:9px;border:none;background:${isToday ? "linear-gradient(135deg,#3b82f6,#7c3aed)" : "linear-gradient(135deg,#0d9488,#0891b2)"};color:#fff;font-size:12px;font-weight:700;font-family:var(--font);cursor:pointer;">
-      ${isToday ? "📅 오늘 자리 예약하기 →" : "📆 이 날짜로 예약하기 →"}
-    </button>`;
   }
 
   infoEl.style.display = "block";
   infoEl.innerHTML = `
     <div class="cal-selected-date" style="color:${dowColor};">${y}년 ${m}월 ${d}일 (${dowNames[dow]})${isToday ? " · 오늘" : ""}</div>
-    ${holiday ? `<div class="cal-selected-holiday"> 🏖️ ${holiday}</div>` : ""}
-    ${isPast ? `<div style="font-size:10px;color:#94a3b8;font-family:var(--mono);margin-bottom:4px;">📌 과거 기록 (읽기 전용)</div>` : ""}
+    ${holiday ? `<div class="cal-selected-holiday">🏖️ ${holiday}</div>` : ""}
     ${resHtml}
-    ${actionBtn}
   `;
 }
 
@@ -5166,4 +5177,4 @@ function toggleTheme() {
 
 </script>
 </body>
-  </html>
+</html>
