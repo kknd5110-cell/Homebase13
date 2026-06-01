@@ -198,8 +198,24 @@
 
   // 예약 개방 ON/OFF Firebase 동기화
   window.reservationOpen = false;
+
+  // 접속 시점에 자동 OFF 구간이면 Firebase를 즉시 false로 교정
+  function _autoCorrectReservationOpen(currentVal) {
+    const now = new Date();
+    const totalMin = now.getHours() * 60 + now.getMinutes();
+    const openMin  = 16 * 60 + 40;
+    const closeMin = 22 * 60;
+    const shouldBeOff = totalMin < openMin || totalMin >= closeMin;
+    if (shouldBeOff && currentVal === true) {
+      set(ref(db, "reservationOpen"), false);
+      return false;
+    }
+    return currentVal;
+  }
+
   onValue(ref(db, "reservationOpen"), (snapshot) => {
-    window.reservationOpen = snapshot.val() === true;
+    const corrected = _autoCorrectReservationOpen(snapshot.val() === true);
+    window.reservationOpen = corrected;
     if (typeof renderAdminReservationToggle === "function") renderAdminReservationToggle();
   });
   window.fbSetReservationOpen = function(val) {
@@ -4082,7 +4098,7 @@ function renderCalSelectedInfo() {
   infoEl.style.display = "block";
   infoEl.innerHTML = `
     <div class="cal-selected-date" style="color:${dowColor};">${y}년 ${m}월 ${d}일 (${dowNames[dow]})${isToday ? " · 오늘" : ""}</div>
-    ${holiday ? `<div class="cal-selected-holiday">🏖️ ${holiday}</div>` : ""}
+    ${holiday ? `<div class="cal-selected-holiday">🎌 ${holiday}</div>` : ""}
     ${resHtml}
   `;
 }
@@ -5177,4 +5193,4 @@ function toggleTheme() {
 
 </script>
 </body>
-</html>
+        </html>
