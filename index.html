@@ -118,7 +118,7 @@
     }
   });
 
-  window.fbSaveStudent = function(id, rec) {
+    window.fbSaveStudent = function(id, rec) {
     set(ref(db, "students/" + id), { password: rec.password, isDefault: rec.isDefault, nickname: rec.nickname || "" });
   };
 
@@ -1824,6 +1824,32 @@
     .slot-tab { font-size: 13px; }
   }
 </style>
+<script>
+  // 우클릭 차단
+  document.addEventListener("contextmenu", function(e) { e.preventDefault(); return false; });
+  // 길게 누르기 차단 (모바일)
+  document.addEventListener("touchstart", function(e) {
+    if (e.touches.length > 1) e.preventDefault();
+  }, { passive: false });
+  var _touchTimer;
+  document.addEventListener("touchstart", function(e) {
+    _touchTimer = setTimeout(function() { e.preventDefault(); }, 500);
+  }, { passive: false });
+  document.addEventListener("touchend", function() { clearTimeout(_touchTimer); });
+  document.addEventListener("touchmove", function() { clearTimeout(_touchTimer); });
+  // 드래그로 이미지 저장 차단
+  document.addEventListener("dragstart", function(e) { e.preventDefault(); });
+  // 키보드 단축키 차단 (F12, Ctrl+U, Ctrl+S, Ctrl+Shift+I)
+  document.addEventListener("keydown", function(e) {
+    if (e.key === "F12") { e.preventDefault(); return false; }
+    if (e.ctrlKey && ["u","U","s","S","i","I","j","J","c","C"].includes(e.key)) {
+      e.preventDefault(); return false;
+    }
+    if (e.ctrlKey && e.shiftKey && ["i","I","j","J","c","C","k","K"].includes(e.key)) {
+      e.preventDefault(); return false;
+    }
+  });
+</script>
 </head>
 <body>
 <button id="theme-toggle-btn" onclick="toggleTheme()" title="라이트/다크 모드 전환">🌙</button>
