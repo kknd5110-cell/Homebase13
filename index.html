@@ -2807,8 +2807,10 @@ function enterMain() {
   // 입장 안내문 표시
   showNoticeModal();
 }
-
 function showNoticeModal() {
+  const todayKey = "homebase-notice-" + todayStr();
+  if (localStorage.getItem(todayKey)) return;
+
   openModal(`
     <div style="text-align:center;margin-bottom:18px;">
       <div style="font-size:32px;margin-bottom:10px;">📋</div>
@@ -2835,9 +2837,31 @@ function showNoticeModal() {
         <span style="font-size:13px;color:var(--text);line-height:1.6;">용도 외 전자기기 사용을 금지합니다. 학습 목적으로만 사용해주세요.</span>
       </div>
     </div>
-    <div style="text-align:center;font-size:13px;color:var(--muted);margin-bottom:18px;font-family:var(--mono);">감사합니다 🙏</div>
-    <button class="btn-primary" onclick="closeModal()" style="letter-spacing:0.5px;">확인했습니다</button>
+    <div style="text-align:center;font-size:13px;color:var(--muted);margin-bottom:14px;font-family:var(--mono);">감사합니다 🙏</div>
+
+    <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px 14px;border-radius:10px;border:1px solid var(--border2);background:rgba(255,255,255,0.02);margin-bottom:14px;"
+      onclick="this.querySelector('input').checked=!this.querySelector('input').checked;this.style.borderColor=this.querySelector('input').checked?'#60a5fa44':'var(--border2)';this.style.background=this.querySelector('input').checked?'rgba(96,165,250,0.06)':'rgba(255,255,255,0.02)';">
+      <div id="notice-checkbox" style="width:18px;height:18px;border-radius:4px;border:2px solid var(--border2);background:transparent;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all 0.15s;pointer-events:none;">
+        <span id="notice-check-icon" style="font-size:12px;display:none;">✓</span>
+      </div>
+      <input type="checkbox" id="notice-hide-today" style="display:none;"
+        onchange="
+          const box=document.getElementById('notice-checkbox');
+          const icon=document.getElementById('notice-check-icon');
+          if(this.checked){box.style.borderColor='#60a5fa';box.style.background='#60a5fa';icon.style.display='block';}
+          else{box.style.borderColor='var(--border2)';box.style.background='transparent';icon.style.display='none';}
+        " />
+      <span style="font-size:13px;color:var(--muted);">오늘 하루 보지 않기</span>
+    </label>
+
+    <button class="btn-primary" onclick="
+      if(document.getElementById('notice-hide-today').checked){
+        localStorage.setItem('${todayKey}','1');
+      }
+      closeModal();
+    " style="letter-spacing:0.5px;">확인했습니다</button>
   `, "rgba(96,165,250,0.3)");
+}
 }
 
 // ── D-Day 배너 ────────────────────────────────────────────
